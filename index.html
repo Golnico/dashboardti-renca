@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Freshdesk - Renca</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#e8eaf0;--text2:#8b92a8;--text3:#555e78;--accent:#4f8ef7;--accent2:#7c5cfc;--green:#34d399;--amber:#fbbf24;--red:#f87171;--teal:#22d3ee;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+.header{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);z-index:100}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#fff}
+.header h1{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.2px}
+.header-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.last-update{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+.main{padding:20px 28px;max-width:1400px;margin:0 auto}
+.filter-bar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.filter-bar label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.filter-bar input, .filter-bar select{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer}
+.filter-bar input:focus, .filter-bar select:focus{border-color:var(--accent)}
+.filter-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;transition:all .15s}
+.filter-btn:hover{border-color:var(--accent);color:var(--accent)}
+.filter-count{font-size:11px;color:var(--text3);margin-left:auto;font-family:'DM Mono',monospace}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:50vh;gap:16px}
+.spinner{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:var(--radius);padding:20px 24px;color:#fca5a5;font-size:13px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:20px}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--accent));opacity:.7}
+.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.kpi-value{font-size:26px;font-weight:600;color:var(--text);letter-spacing:-1px;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text2);margin-top:6px}
+.section-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px;margin-top:24px}
+.charts-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
+.chart-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.chart-sub{font-size:11px;color:var(--text3);margin-bottom:12px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:auto;margin-bottom:24px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{padding:10px 14px;text-align:left;font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;background:var(--bg3);border-bottom:1px solid var(--border)}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg3)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;font-family:'DM Mono',monospace}
+.b-open{background:rgba(79,142,247,0.15);color:#93bbfc}
+.b-pending{background:rgba(251,191,36,0.15);color:#fcd34d}
+.b-resolved{background:rgba(52,211,153,0.15);color:#6ee7b7}
+.b-closed{background:rgba(52,211,153,0.10);color:#86efac}
+.bar-mini{height:4px;border-radius:2px;margin-top:6px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+@media(max-width:900px){.charts-3{grid-template-columns:1fr}.main{padding:16px}}
+.warning-box{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--amber)}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">F</div>
+    <div>
+      <h1>Dashboard Freshdesk · Renca</h1>
+      <div class="header-sub">Métricas de tickets en tiempo real</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="last-update" id="last-update"></span>
+  </div>
+</header>
+
+<main class="main">
+  <div class="warning-box">
+    ⚠️ <strong>Demo conectada a Freshdesk</strong> · Los datos se obtienen en tiempo real desde tu helpdesk.
+    Para mejor rendimiento, se cargan los últimos 1000 tickets.
+  </div>
+
+  <div class="filter-bar">
+    <label>Desde</label>
+    <input type="date" id="date-from">
+    <span class="filter-sep">→</span>
+    <label>Hasta</label>
+    <input type="date" id="date-to">
+    <label>Estado</label>
+    <select id="status-filter">
+      <option value="all">Todos</option>
+      <option value="Open">Abiertos</option>
+      <option value="Pending">Pendientes</option>
+      <option value="Resolved">Resueltos</option>
+      <option value="Closed">Cerrados</option>
+    </select>
+    <button class="filter-btn" onclick="setRange(30)">30 días</button>
+    <button class="filter-btn" onclick="setRange(90)">90 días</button>
+    <button class="filter-btn" onclick="setRange(180)">6 meses</button>
+    <button class="filter-btn" onclick="loadAllTickets()">Cargar todo</button>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+
+  <div id="dash-content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Cargando tickets desde Freshdesk API...</p>
+    </div>
+  </div>
+</main>
+
+<script>
+// CONFIGURACIÓN FRESHDESK
+const FRESHDESK_DOMAIN = 'cmrenca';
+const FRESHDESK_API_KEY = '0exdY8BGk1O5sT4tNXd';
+
+// Variables globales
+let allTickets = [];
+let charts = {};
+
+// Mapeo de estados Freshdesk (números a texto)
+function mapStatus(statusId) {
+  const statusMap = {
+    2: 'Open',
+    3: 'Pending',
+    4: 'Resolved',
+    5: 'Closed'
+  };
+  return statusMap[statusId] || 'Unknown';
+}
+
+// Mapeo de prioridades
+function mapPriority(priorityId) {
+  const priorityMap = {
+    1: 'Low',
+    2: 'Medium',
+    3: 'High',
+    4: 'Urgent'
+  };
+  return priorityMap[priorityId] || 'Unknown';
+}
+
+// Obtener tickets desde Freshdesk API
+async function fetchFreshdeskTickets() {
+  let allTicketsData = [];
+  let page = 1;
+  const perPage = 100;
+  let hasMore = true;
+
+  while (hasMore && page <= 10) { // Máximo 10 páginas (1000 tickets)
+    try {
+      const url = `https://${FRESHDESK_DOMAIN}.freshdesk.com/api/v2/tickets?page=${page}&per_page=${perPage}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': 'Basic ' + btoa(FRESHDESK_API_KEY + ':X')
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const tickets = await response.json();
+      if (tickets.length === 0) {
+        hasMore = false;
+      } else {
+        allTicketsData.push(...tickets);
+        page++;
+      }
+    } catch (error) {
+      console.error('Error fetching page:', error);
+      throw error;
+    }
+  }
+
+  return allTicketsData;
+}
+
+// Transformar datos de Freshdesk a formato del dashboard
+function transformTickets(rawTickets) {
+  return rawTickets.map(ticket => ({
+    id: ticket.id,
+    display_id: ticket.display_id,
+    status: mapStatus(ticket.status),
+    priority: mapPriority(ticket.priority),
+    agent: ticket.responder_name || 'Sin asignar',
+    created: new Date(ticket.created_at),
+    company: ticket.company_name || ticket.custom_fields?.empresa || 'Sin empresa',
+    subject: ticket.subject || 'Sin asunto',
+    contact: ticket.requester_name || 'Sin contacto',
+    description: ticket.description_text || '',
+    due_by: ticket.due_by ? new Date(ticket.due_by) : null,
+    custom_fields: ticket.custom_fields || {}
+  }));
+}
+
+// Destruir gráficos existentes
+function destroyChart(id) {
+  if (charts[id]) {
+    charts[id].destroy();
+    delete charts[id];
+  }
+}
+
+// Cargar datos
+async function loadAllTickets() {
+  const contentDiv = document.getElementById('dash-content');
+  contentDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando tickets desde Freshdesk...</p></div>';
+  
+  try {
+    const rawTickets = await fetchFreshdeskTickets();
+    allTickets = transformTickets(rawTickets);
+    
+    // Setear rango de fechas completo
+    if (allTickets.length > 0) {
+      const dates = allTickets.map(t => t.created.getTime());
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+      document.getElementById('date-from').value = minDate.toISOString().slice(0,10);
+      document.getElementById('date-to').value = maxDate.toISOString().slice(0,10);
+    }
+    
+    document.getElementById('last-update').textContent = 
+      `Actualizado ${new Date().toLocaleTimeString('es-CL')} · ${allTickets.length} tickets`;
+    
+    applyFilters();
+  } catch (error) {
+    contentDiv.innerHTML = `<div class="error-box">
+      ❌ Error al conectar con Freshdesk API: ${error.message}<br><br>
+      <strong>Posibles soluciones:</strong><br>
+      • Verifica que la API Key sea correcta<br>
+      • Asegúrate de que tu cuenta tenga acceso a la API<br>
+      • Revisa la consola para más detalles
+    </div>`;
+    console.error('Freshdesk API Error:', error);
+  }
+}
+
+// Aplicar filtros
+function applyFilters() {
+  const fromVal = document.getElementById('date-from').value;
+  const toVal = document.getElementById('date-to').value;
+  const statusFilter = document.getElementById('status-filter').value;
+  
+  const from = fromVal ? new Date(fromVal) : null;
+  const to = toVal ? new Date(toVal + 'T23:59:59') : null;
+  
+  let filtered = allTickets.filter(t => {
+    if (!t.created) return false;
+    if (from && t.created < from) return false;
+    if (to && t.created > to) return false;
+    if (statusFilter !== 'all' && t.status !== statusFilter) return false;
+    return true;
+  });
+  
+  document.getElementById('filter-count').textContent = 
+    `${filtered.length} de ${allTickets.length} tickets`;
+  
+  renderDashboard(filtered);
+}
+
+// Función helper para colores
+function leg(color, text) {
+  return `<span class="leg"><span class="leg-dot" style="background:${color}"></span>${text}</span>`;
+}
+
+function kpi(label, value, sub, color, style = '') {
+  return `<div class="kpi-card" style="--kpi-color:${color}">
+    <div class="kpi-label">${label}</div>
+    <div class="kpi-value" style="${style}">${value}</div>
+    <div class="kpi-sub">${sub}</div>
+  </div>`;
+}
+
+// Renderizar dashboard
+function renderDashboard(tickets) {
+  const total = tickets.length;
+  const open = tickets.filter(t => t.status === 'Open').length;
+  const pending = tickets.filter(t => t.status === 'Pending').length;
+  const resolved = tickets.filter(t => t.status === 'Resolved').length;
+  const closed = tickets.filter(t => t.status === 'Closed').length;
+  
+  // Estadísticas por agente
+  const agentMap = {};
+  tickets.forEach(t => {
+    if (!agentMap[t.agent]) {
+      agentMap[t.agent] = { name: t.agent, total: 0, open: 0, resolved: 0 };
+    }
+    agentMap[t.agent].total++;
+    if (t.status === 'Open') agentMap[t.agent].open++;
+    if (t.status === 'Resolved' || t.status === 'Closed') agentMap[t.agent].resolved++;
+  });
+  
+  const agents = Object.values(agentMap)
+    .filter(a => a.name !== 'Sin asignar')
+    .sort((a,b) => b.total - a.total)
+    .slice(0, 10);
+  
+  // Estadísticas mensuales
+  const monthMap = {};
+  tickets.forEach(t => {
+    if (!t.created) return;
+    const key = `${t.created.getFullYear()}-${String(t.created.getMonth()+1).padStart(2,'0')}`;
+    if (!monthMap[key]) {
+      monthMap[key] = { Open: 0, Pending: 0, Resolved: 0, Closed: 0, total: 0 };
+    }
+    monthMap[key][t.status]++;
+    monthMap[key].total++;
+  });
+  
+  const monthKeys = Object.keys(monthMap).sort();
+  const monthLabels = monthKeys.map(k => {
+    const [year, month] = k.split('-');
+    return new Date(year, month-1, 1).toLocaleDateString('es-CL', { month: 'short', year: '2-digit' });
+  });
+  
+  // Distribución por estado
+  const statuses = ['Open', 'Pending', 'Resolved', 'Closed'];
+  const statusCounts = statuses.map(s => tickets.filter(t => t.status === s).length);
+  const statusColors = ['#4f8ef7', '#fbbf24', '#34d399', '#22d3ee'];
+  
+  // Distribución por prioridad
+  const priorities = ['Urgent', 'High', 'Medium', 'Low'];
+  const prioCounts = priorities.map(p => tickets.filter(t => t.priority === p).length);
+  const prioColors = ['#f87171', '#fbbf24', '#4f8ef7', '#8b92a8'];
+  
+  // Top empresas
+  const companyTotals = {};
+  tickets.forEach(t => {
+    companyTotals[t.company] = (companyTotals[t.company] || 0) + 1;
+  });
+  const topCompanies = Object.entries(companyTotals)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 5);
+  
+  // Construir HTML
+  const html = `
+    <div class="kpi-grid">
+      ${kpi('Total tickets', total, 'en el periodo', '#4f8ef7')}
+      ${kpi('Abiertos', open, `${total ? Math.round(open/total*100) : 0}% del total`, '#4f8ef7')}
+      ${kpi('Pendientes', pending, 'en espera', '#fbbf24')}
+      ${kpi('Resueltos', resolved, `${total ? Math.round(resolved/total*100) : 0}% del total`, '#34d399')}
+      ${kpi('Cerrados', closed, `${total ? Math.round(closed/total*100) : 0}% del total`, '#22d3ee')}
+    </div>
+    
+    <p class="section-title">Evolución mensual</p>
+    <div class="chart-card">
+      <div class="chart-title">Tickets por mes</div>
+      <div class="legend">
+        ${statuses.map((s,i) => leg(statusColors[i], s)).join('')}
+        ${leg('#e2e8f0', 'Total')}
+      </div>
+      <div style="position:relative;height:280px"><canvas id="chart-monthly"></canvas></div>
+    </div>
+    
+    <p class="section-title">Distribución actual</p>
+    <div class="charts-3">
+      <div class="chart-card">
+        <div class="chart-title">Por estado</div>
+        <div id="leg-status" class="legend"></div>
+        <div style="position:relative;height:190px"><canvas id="chart-status"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Por prioridad</div>
+        <div id="leg-prio" class="legend"></div>
+        <div style="position:relative;height:190px"><canvas id="chart-prio"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top empresas</div>
+        <div style="position:relative;height:190px"><canvas id="chart-companies"></canvas></div>
+      </div>
+    </div>
+    
+    <p class="section-title">Rendimiento por agente</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Agente</th>
+            <th>Total</th>
+            <th>Abiertos</th>
+            <th>Resueltos</th>
+            <th>Carga</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${agents.map(a => `
+            <tr>
+              <td style="font-weight:500">${a.name}</td>
+              <td>${a.total}</td>
+              <td>${a.open}</td>
+              <td style="color:var(--green)">${a.resolved}</td>
+              <td><div style="width:60px">${Math.round(a.total/mathMax(total,1)*100)}%</div><div class="bar-mini" style="width:${Math.round(a.total/mathMax(total,1)*100)}%"></div></td>
+            </tr>
+          `).join('')}
+          ${agents.length === 0 ? '<tr><td colspan="5" style="text-align:center">No hay datos de agentes</td></tr>' : ''}
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  document.getElementById('dash-content').innerHTML = html;
+  
+  // Función helper
+  window.mathMax = Math.max;
+  
+  // Renderizar gráficos
+  destroyChart('monthly');
+  charts.monthly = new Chart(document.getElementById('chart-monthly'), {
+    type: 'line',
+    data: {
+      labels: monthLabels,
+      datasets: [
+        ...statuses.map((s, i) => ({
+          label: s,
+          data: monthKeys.map(k => monthMap[k][s] || 0),
+          borderColor: statusColors[i],
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: statusColors[i],
+          pointBorderColor: '#0f1117',
+          pointBorderWidth: 2,
+          tension: 0.3,
+          fill: false
+        })),
+        {
+          label: 'Total',
+          data: monthKeys.map(k => monthMap[k].total || 0),
+          borderColor: '#e2e8f0',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [4, 3],
+          pointRadius: 2,
+          tension: 0.3,
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#555e78', maxRotation: 45 }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#555e78' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+  
+  destroyChart('status');
+  charts.status = new Chart(document.getElementById('chart-status'), {
+    type: 'doughnut',
+    data: { labels: statuses, datasets: [{ data: statusCounts, backgroundColor: statusColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '65%' }
+  });
+  document.getElementById('leg-status').innerHTML = statuses.map((s,i) => leg(statusColors[i], `${s} (${statusCounts[i]})`)).join('');
+  
+  destroyChart('prio');
+  charts.prio = new Chart(document.getElementById('chart-prio'), {
+    type: 'doughnut',
+    data: { labels: priorities, datasets: [{ data: prioCounts, backgroundColor: prioColors, borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '65%' }
+  });
+  document.getElementById('leg-prio').innerHTML = priorities.map((p,i) => leg(prioColors[i], `${p} (${prioCounts[i]})`)).join('');
+  
+  destroyChart('companies');
+  charts.companies = new Chart(document.getElementById('chart-companies'), {
+    type: 'bar',
+    data: {
+      labels: topCompanies.map(c => c[0].length > 15 ? c[0].slice(0,15)+'...' : c[0]),
+      datasets: [{ data: topCompanies.map(c => c[1]), backgroundColor: '#4f8ef7', borderRadius: 4 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#555e78', font: { size: 10 } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#555e78' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function setRange(days) {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  document.getElementById('date-from').value = from.toISOString().slice(0,10);
+  document.getElementById('date-to').value = to.toISOString().slice(0,10);
+  applyFilters();
+}
+
+// Iniciar
+loadAllTickets();
+</script>
+</body>
+</html>
